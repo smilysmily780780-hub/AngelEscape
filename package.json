@@ -1,0 +1,16 @@
+{
+  "name": "angel-escape",
+  "version": "1.0.0",
+  "description": "Angel Escape: Heaven Flight Game",
+  "main": "index.html",
+  "scripts": {
+    "build": "npx cap copy && npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

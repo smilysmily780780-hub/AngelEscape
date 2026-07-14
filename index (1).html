@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Angel Escape: Heaven Flight</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body {
+            background: #0A1028;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            aspect-ratio: 9 / 16;
+            background: #0A1028;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .ui-overlay > * { pointer-events: auto; }
+        /* Top Bar */
+        #topBar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            width: 100%;
+        }
+        .glass-btn {
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(255, 215, 0, 0.5);
+            border-radius: 30px;
+            padding: 6px 14px;
+            color: #FFD54F;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.15);
+            transition: 0.2s;
+            cursor: pointer;
+            text-shadow: 0 0 12px rgba(255,215,0,0.3);
+        }
+        .glass-btn:active { transform: scale(0.95); }
+        .glass-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        #scoreArea {
+            text-align: center;
+            pointer-events: none;
+        }
+        #score {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #FFD54F;
+            text-shadow: 0 0 25px rgba(255,213,79,0.6), 0 0 60px rgba(255,213,79,0.2);
+            letter-spacing: 1px;
+            line-height: 1;
+        }
+        #highScore {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 2px;
+            margin-top: 2px;
+        }
+        #coinDisplay {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        .coin-row {
+            font-size: 0.9rem;
+            color: #FFD54F;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 30px;
+            padding: 2px 12px 2px 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.1);
+            font-weight: 600;
+        }
+        .coin-row .icon { font-size: 1rem; margin-right: 2px; }
+        .coin-row .value { font-size: 0.9rem; }
+        .diamond-row { border-color: rgba(0, 255, 255, 0.4); color: #00FFFF; }
+        .diamond-row .icon { color: #00FFFF; }
+        /* Menus */
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10,16,40,0.7);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            padding: 30px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            overflow-y: auto;
+        }
+        .menu-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .menu-title {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #FFD54F;
+            text-shadow: 0 0 40px rgba(255,215,0,0.4);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        .menu-sub {
+            color: rgba(255,255,255,0.7);
+            font-size: 1rem;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        .menu-btn {
+            background: linear-gradient(135deg, #FFD54F, #FFB300);
+            border: none;
+            border-radius: 50px;
+            padding: 14px 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0A1028;
+            box-shadow: 0 8px 30px rgba(255,215,0,0.3);
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 6px;
+            min-width: 160px;
+            letter-spacing: 1px;
+        }
+        .menu-btn:active { transform: scale(0.95); }
+        .menu-btn.secondary {
+            background: rgba(255,255,255,0.08);
+            color: #FFD54F;
+            box-shadow: 0 0 0 1px rgba(255,215,0,0.3);
+        }
+        .menu-btn.secondary:active { background: rgba(255,255,255,0.15); }
+        .menu-stats {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            margin: 6px 0;
+        }
+        .menu-stats span { color: #FFD54F; font-weight: 600; }
+        .menu-stats.diamond span { color: #00FFFF; }
+        /* Auth screen */
+        #authScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10,16,40,0.95);
+            backdrop-filter: blur(8px);
+            padding: 30px;
+            text-align: center;
+            z-index: 200;
+            transition: opacity 0.5s ease;
+        }
+        #authScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #authScreen input {
+            display: block;
+            width: 80%;
+            max-width: 280px;
+            padding: 12px 18px;
+            margin: 8px auto;
+            border-radius: 30px;
+            border: 1.5px solid rgba(255,215,0,0.3);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+        }
+        #authScreen input:focus { border-color: #FFD54F; }
+        #authScreen input::placeholder { color: rgba(255,255,255,0.4); }
+        #authScreen .menu-btn { min-width: 120px; margin: 4px; }
+        #authScreen .auth-toggle {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            margin-top: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .auth-error {
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            margin: 4px 0;
+            min-height: 20px;
+        }
+        #authScreen .menu-title { font-size: 2.2rem; margin-bottom: 20px; }
+        /* Level Complete Popup */
+        #levelCompletePopup {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            padding: 30px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 50;
+        }
+        #levelCompletePopup.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #levelCompletePopup .menu-title { font-size: 2.2rem; }
+        #levelCompletePopup .menu-stats { font-size: 1.2rem; color: #FFD54F; }
+        .ad-loading {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: #FFD54F;
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+        .ad-loading.active { display: flex; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,215,0,0.1);
+            border-top: 4px solid #FFD54F;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 16px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Shop & achievements */
+        .shop-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .shop-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,215,0,0.2);
+            border-radius: 16px;
+            padding: 12px 16px;
+            width: 100px;
+            text-align: center;
+            color: #fff;
+            font-size: 0.8rem;
+            backdrop-filter: blur(4px);
+        }
+        .shop-item .icon { font-size: 2rem; display: block; margin-bottom: 4px; }
+        .shop-item .price { color: #FFD54F; font-weight: 600; }
+        .shop-item .buy-btn {
+            background: #FFD54F;
+            border: none;
+            border-radius: 20px;
+            padding: 4px 12px;
+            margin-top: 6px;
+            font-weight: 700;
+            color: #0A1028;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .shop-item .buy-btn:active { transform: scale(0.9); }
+        .close-menu {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #fff;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+        .close-menu:active { transform: scale(0.9); }
+        /* Wallet & Profile styles */
+        .wallet-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .wallet-tabs .tab-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,215,0,0.2);
+            border-radius: 30px;
+            padding: 8px 18px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .wallet-tabs .tab-btn.active {
+            background: #FFD54F;
+            color: #0A1028;
+            border-color: #FFD54F;
+        }
+        .wallet-tab-content {
+            width: 100%;
+            max-width: 320px;
+            margin: 10px auto;
+            text-align: left;
+        }
+        .wallet-tab-content .input-group {
+            margin: 8px 0;
+        }
+        .wallet-tab-content label {
+            display: block;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+        .wallet-tab-content input, .wallet-tab-content textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 30px;
+            border: 1.5px solid rgba(255,215,0,0.3);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.3s;
+        }
+        .wallet-tab-content input:focus, .wallet-tab-content textarea:focus {
+            border-color: #FFD54F;
+        }
+        .wallet-tab-content textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .wallet-tab-content .action-btn {
+            background: #FFD54F;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-weight: 700;
+            color: #0A1028;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .wallet-tab-content .action-btn:active { transform: scale(0.95); }
+        .wallet-tab-content .action-btn.danger {
+            background: #ff6b6b;
+            color: #fff;
+        }
+        .wallet-balance {
+            font-size: 1.4rem;
+            text-align: center;
+            margin: 10px 0;
+            color: #00FFFF;
+        }
+        .wallet-balance span { font-weight: 700; }
+        .transaction-msg {
+            color: #00FF88;
+            font-size: 0.9rem;
+            margin-top: 6px;
+            text-align: center;
+        }
+        .transaction-msg.error { color: #ff6b6b; }
+        @media (max-width: 480px) {
+            #score { font-size: 1.8rem; }
+            .menu-title { font-size: 2.2rem; }
+            .menu-btn { padding: 12px 20px; font-size: 1rem; min-width: 140px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Ad Loading -->
+    <div class="ad-loading" id="adLoading">
+        <div class="spinner"></div>
+        <span>Loading Ad...</span>
+    </div>
+
+    <!-- Level Complete Popup -->
+    <div id="levelCompletePopup">
+        <div class="menu-title">🎉 Level Complete!</div>
+        <div class="menu-stats">Diamond Coins Reward: <span id="diamondReward">0</span></div>
+        <button class="menu-btn" id="claimBtn">💎 Claim Reward</button>
+        <button class="menu-btn secondary" id="skipClaimBtn">⏭ Skip</button>
+    </div>
+
+    <!-- Auth Screen -->
+    <div id="authScreen">
+        <div class="menu-title">☁️ Angel Escape</div>
+        <div class="menu-sub">Sign in to save progress</div>
+        <input type="email" id="authEmail" placeholder="Email" />
+        <input type="password" id="authPassword" placeholder="Password" />
+        <div class="auth-error" id="authError"></div>
+        <button class="menu-btn" id="authLoginBtn">Login</button>
+        <button class="menu-btn secondary" id="authSignupBtn">Sign Up</button>
+        <div class="auth-toggle" id="authToggle">Don't have an account? Sign Up</div>
+    </div>
+
+    <!-- UI Overlay -->
+    <div class="ui-overlay" id="uiOverlay">
+        <!-- Top Bar -->
+        <div id="topBar">
+            <div class="glass-btn" id="pauseBtn">
+                <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                <span>Pause</span>
+            </div>
+            <div id="scoreArea">
+                <div id="score">0</div>
+                <div id="highScore">BEST 0</div>
+            </div>
+            <div id="coinDisplay">
+                <div class="coin-row">
+                    <span class="icon">⭐</span>
+                    <span class="value" id="coinCount">0.0</span>
+                </div>
+                <div class="coin-row diamond-row">
+                    <span class="icon">💎</span>
+                    <span class="value" id="diamondCount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Menu -->
+        <div class="menu-overlay" id="startMenu">
+            <div class="menu-title">☁️ Angel Escape</div>
+            <div class="menu-sub">Heaven Flight</div>
+            <button class="menu-btn" id="startBtn">➤ Play</button>
+            <button class="menu-btn secondary" id="walletBtn">💳 Wallet</button>
+            <button class="menu-btn secondary" id="shopBtn">🛒 Shop</button>
+            <button class="menu-btn secondary" id="achievementsBtn">🏆 Achievements</button>
+            <div class="menu-stats">Best Score: <span id="startHighScore">0</span></div>
+            <div class="menu-stats">Flashcoins: <span id="startFlashcoins">0.0</span></div>
+            <div class="menu-stats diamond">Diamond Coins: <span id="startDiamonds">0</span></div>
+            <button class="menu-btn secondary" id="logoutBtn" style="margin-top:10px;">🚪 Logout</button>
+        </div>
+
+        <!-- Game Over Menu -->
+        <div class="menu-overlay" id="gameOverMenu">
+            <div class="menu-title">✨ Game Over</div>
+            <div class="menu-stats">Score: <span id="finalScore">0</span> &nbsp;|&nbsp; Best: <span id="finalHigh">0</span></div>
+            <button class="menu-btn" id="reviveBtn">▶ Watch Ad to Revive</button>
+            <button class="menu-btn secondary" id="retryBtn">↻ New Game</button>
+            <button class="menu-btn secondary" id="menuBtn">☰ Menu</button>
+        </div>
+
+        <!-- Pause Menu -->
+        <div class="menu-overlay" id="pauseMenu">
+            <div class="menu-title">⏸ Paused</div>
+            <button class="menu-btn" id="resumeBtn">▶ Resume</button>
+            <button class="menu-btn secondary" id="pauseMenuBtn">☰ Menu</button>
+        </div>
+
+        <!-- Shop -->
+        <div class="menu-overlay" id="shopMenu">
+            <div class="close-menu" id="shopClose">✕</div>
+            <div class="menu-title" style="font-size:1.8rem;">🛒 Shop</div>
+            <div class="menu-stats">Flashcoins: <span id="shopCoins">0.0</span></div>
+            <div class="shop-grid">
+                <div class="shop-item">
+                    <span class="icon">🪶</span> Feather Trail
+                    <div class="price">⭐ 50</div>
+                    <button class="buy-btn" data-item="feather" data-price="50">Buy</button>
+                </div>
+                <div class="shop-item">
+                    <span class="icon">👼</span> Golden Wings
+                    <div class="price">⭐ 150</div>
+                    <button class="buy-btn" data-item="wings" data-price="150">Buy</button>
+                </div>
+                <div class="shop-item">
+                    <span class="icon">✨</span> Glow Aura
+                    <div class="price">⭐ 300</div>
+                    <button class="buy-btn" data-item="aura" data-price="300">Buy</button>
+                </div>
+            </div>
+            <button class="menu-btn secondary" style="margin-top:10px;" id="shopBack">Back</button>
+        </div>
+
+        <!-- Achievements -->
+        <div class="menu-overlay" id="achievementsMenu">
+            <div class="close-menu" id="achieveClose">✕</div>
+            <div class="menu-title" style="font-size:1.8rem;">🏆 Achievements</div>
+            <div class="menu-stats" style="margin-top:20px;">
+                <div>🏅 Fly 1000m – <span id="ach1">Locked</span></div>
+                <div>🌟 Collect 50 stars – <span id="ach2">Locked</span></div>
+                <div>💫 Complete 5 levels – <span id="ach3">Locked</span></div>
+            </div>
+            <button class="menu-btn secondary" style="margin-top:10px;" id="achieveBack">Back</button>
+        </div>
+
+        <!-- Wallet Menu -->
+        <div class="menu-overlay" id="walletMenu">
+            <div class="close-menu" id="walletClose">✕</div>
+            <div class="menu-title" style="font-size:1.8rem;">💳 Wallet</div>
+            <div class="wallet-balance">💎 Balance: <span id="walletBalance">0</span></div>
+
+            <div class="wallet-tabs">
+                <button class="tab-btn active" data-tab="profile">Profile</button>
+                <button class="tab-btn" data-tab="withdraw">Withdraw</button>
+                <button class="tab-btn" data-tab="transfer">Transfer</button>
+                <button class="tab-btn" data-tab="delete">Delete</button>
+            </div>
+
+            <!-- Profile Tab -->
+            <div class="wallet-tab-content" id="tab-profile">
+                <div class="input-group">
+                    <label>Email (your address)</label>
+                    <input type="text" id="profileEmail" disabled />
+                </div>
+                <div class="input-group">
+                    <label>Bio</label>
+                    <textarea id="profileBio" placeholder="Tell us about yourself..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Bank Account Holder Name</label>
+                    <input type="text" id="bankHolder" placeholder="Full name" />
+                </div>
+                <div class="input-group">
+                    <label>Bank Account Number</label>
+                    <input type="text" id="bankNumber" placeholder="Account number" />
+                </div>
+                <div class="input-group">
+                    <label>Bank Name</label>
+                    <input type="text" id="bankName" placeholder="Bank name" />
+                </div>
+                <button class="action-btn" id="saveProfileBtn">💾 Save Profile</button>
+                <div class="transaction-msg" id="profileMsg"></div>
+            </div>
+
+            <!-- Withdraw Tab -->
+            <div class="wallet-tab-content" id="tab-withdraw" style="display:none;">
+                <div class="input-group">
+                    <label>Amount (Diamond Coins)</label>
+                    <input type="number" id="withdrawAmount" placeholder="Enter amount" min="1" />
+                </div>
+                <button class="action-btn" id="withdrawBtn">💸 Withdraw</button>
+                <div class="transaction-msg" id="withdrawMsg"></div>
+            </div>
+
+            <!-- Transfer Tab -->
+            <div class="wallet-tab-content" id="tab-transfer" style="display:none;">
+                <div class="input-group">
+                    <label>Recipient Email</label>
+                    <input type="email" id="transferEmail" placeholder="user@example.com" />
+                </div>
+                <div class="input-group">
+                    <label>Amount (Diamond Coins)</label>
+                    <input type="number" id="transferAmount" placeholder="Enter amount" min="1" />
+                </div>
+                <div class="input-group">
+                    <label>Note (optional)</label>
+                    <input type="text" id="transferNote" placeholder="Message" />
+                </div>
+                <button class="action-btn" id="transferBtn">➡️ Send</button>
+                <div class="transaction-msg" id="transferMsg"></div>
+            </div>
+
+            <!-- Delete Account Tab -->
+            <div class="wallet-tab-content" id="tab-delete" style="display:none;">
+                <p style="color:#ff6b6b; margin-bottom:12px;">⚠️ This action is permanent. All your data will be removed.</p>
+                <button class="action-btn danger" id="deleteAccountBtn">🗑️ Delete Account</button>
+                <div class="transaction-msg" id="deleteMsg"></div>
+            </div>
+
+            <button class="menu-btn secondary" style="margin-top:10px;" id="walletBack">Back to Menu</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // ================================================================
+        // 1. FIREBASE CONFIG (replace with your own)
+        // ================================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyASBHLk-kEMWnTVAeehlBibmWbwcnxfqBQ",
+    authDomain: "tv-app-f8cad.firebaseapp.com",
+    databaseURL: "https://tv-app-f8cad-default-rtdb.firebaseio.com",
+    projectId: "tv-app-f8cad",
+    storageBucket: "tv-app-f8cad.firebasestorage.app",
+    messagingSenderId: "392427185129",
+    appId: "1:392427185129:web:62adb13654160b7d56a178"
+};
+
+        let firebaseApp, auth, database;
+        let useFirebase = false;
+        if (firebaseConfig.apiKey !== "apiKey") {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                database = firebase.database();
+                useFirebase = true;
+                console.log('✅ Firebase initialized');
+            } catch (e) {
+                console.warn('Firebase init failed, using local storage only', e);
+            }
+        } else {
+            console.warn('Please set your Firebase config in the script.');
+        }
+
+        // ================================================================
+        // 2. GAME CONFIG (will be overridden by Firebase if available)
+        // ================================================================
+        let ADMIN_CONFIG = {
+            diamondReward: 5,
+            flashcoinsPerObstacle: 0.2,
+            initialLevelRequirement: 12,
+            adEnabled: true,
+        };
+
+        // ================================================================
+        // 3. DOM REFS (same as before)
+        // ================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('gameContainer');
+
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('highScore');
+        const coinCountEl = document.getElementById('coinCount');
+        const diamondCountEl = document.getElementById('diamondCount');
+        const startMenu = document.getElementById('startMenu');
+        const gameOverMenu = document.getElementById('gameOverMenu');
+        const pauseMenu = document.getElementById('pauseMenu');
+        const shopMenu = document.getElementById('shopMenu');
+        const achievementsMenu = document.getElementById('achievementsMenu');
+        const walletMenu = document.getElementById('walletMenu');
+        const finalScoreEl = document.getElementById('finalScore');
+        const finalHighEl = document.getElementById('finalHigh');
+        const startHighScoreEl = document.getElementById('startHighScore');
+        const startFlashcoinsEl = document.getElementById('startFlashcoins');
+        const startDiamondsEl = document.getElementById('startDiamonds');
+        const shopCoinsEl = document.getElementById('shopCoins');
+        const adLoading = document.getElementById('adLoading');
+        const levelPopup = document.getElementById('levelCompletePopup');
+        const diamondRewardEl = document.getElementById('diamondReward');
+
+        const authScreen = document.getElementById('authScreen');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authError = document.getElementById('authError');
+        const authLoginBtn = document.getElementById('authLoginBtn');
+        const authSignupBtn = document.getElementById('authSignupBtn');
+        const authToggle = document.getElementById('authToggle');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const walletBalance = document.getElementById('walletBalance');
+        const profileEmail = document.getElementById('profileEmail');
+        const profileBio = document.getElementById('profileBio');
+        const bankHolder = document.getElementById('bankHolder');
+        const bankNumber = document.getElementById('bankNumber');
+        const bankName = document.getElementById('bankName');
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        const profileMsg = document.getElementById('profileMsg');
+        const withdrawAmount = document.getElementById('withdrawAmount');
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        const withdrawMsg = document.getElementById('withdrawMsg');
+        const transferEmail = document.getElementById('transferEmail');
+        const transferAmount = document.getElementById('transferAmount');
+        const transferNote = document.getElementById('transferNote');
+        const transferBtn = document.getElementById('transferBtn');
+        const transferMsg = document.getElementById('transferMsg');
+        const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+        const deleteMsg = document.getElementById('deleteMsg');
+
+        const walletClose = document.getElementById('walletClose');
+        const walletBack = document.getElementById('walletBack');
+        const walletBtn = document.getElementById('walletBtn');
+
+        const startBtn = document.getElementById('startBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const reviveBtn = document.getElementById('reviveBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const pauseMenuBtn = document.getElementById('pauseMenuBtn');
+        const shopBtn = document.getElementById('shopBtn');
+        const shopBack = document.getElementById('shopBack');
+        const shopClose = document.getElementById('shopClose');
+        const achievementsBtn = document.getElementById('achievementsBtn');
+        const achieveBack = document.getElementById('achieveBack');
+        const achieveClose = document.getElementById('achieveClose');
+        const buyBtns = document.querySelectorAll('.buy-btn');
+        const claimBtn = document.getElementById('claimBtn');
+        const skipClaimBtn = document.getElementById('skipClaimBtn');
+
+        // ================================================================
+        // 4. GAME CONSTANTS (speed increased)
+        // ================================================================
+        const GRAVITY = 0.55;
+        const FLAP_VELOCITY = -7.7;
+        const PIPE_WIDTH = 48;
+        const PIPE_GAP_MIN = 130;
+        const PIPE_GAP_MAX = 185;
+        const PIPE_SPACING = 290;
+        const SCROLL_SPEED_INIT = 3.1;
+        const SCROLL_SPEED_INCR = 0.0012;
+        const ANGEL_RADIUS = 15;
+
+        // ================================================================
+        // 5. GAME STATE
+        // ================================================================
+        let canvasW, canvasH;
+        let gameRunning = false;
+        let gamePaused = false;
+        let distanceScore = 0;
+        let highScore = 0;
+        let flashcoins = 0;
+        let diamonds = 0;
+        let scrollSpeed = SCROLL_SPEED_INIT;
+
+        let level = 1;
+        let obstaclesPassed = 0;
+        let obstaclesRequired = ADMIN_CONFIG.initialLevelRequirement;
+
+        let angel = {
+            x: 0,
+            y: 0,
+            radius: ANGEL_RADIUS,
+            vy: 0,
+            rotation: 0,
+            wingAngle: 0,
+            wingPhase: 0,
+        };
+
+        let obstacles = [];
+        let collectibles = [];
+        let particles = [];
+        let stars = [];
+        let clouds = [];
+        let islands = [];
+        let frame = 0;
+        let distance = 0;
+        let tapJustPressed = false;
+        let adPending = false;
+        let pendingClaim = false;
+
+        let currentUser = null;
+
+        // ================================================================
+        // 6. RESIZE
+        // ================================================================
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvasW = rect.width;
+            canvasH = rect.height;
+            canvas.width = canvasW * dpr;
+            canvas.height = canvasH * dpr;
+            canvas.style.width = canvasW + 'px';
+            canvas.style.height = canvasH + 'px';
+            ctx.scale(dpr, dpr);
+            angel.x = canvasW * 0.3;
+            angel.y = canvasH * 0.5;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // ================================================================
+        // 7. UTILITIES
+        // ================================================================
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function getFlashcoins() { return flashcoins / 100; }
+        function setFlashcoins(val) { flashcoins = Math.round(val * 100); }
+        function addFlashcoins(val) { flashcoins += Math.round(val * 100); }
+        function formatFlashcoins() { return (flashcoins / 100).toFixed(1); }
+
+        // ================================================================
+        // 8. PARTICLES (same as before)
+        // ================================================================
+        function spawnParticles(x, y, color, count = 20, speed = 3) {
+            for (let i = 0; i < count; i++) {
+                const angle = rand(0, Math.PI * 2);
+                const spd = rand(0.5, speed);
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd - 0.5,
+                    life: rand(30, 70),
+                    maxLife: 70,
+                    size: rand(2, 6),
+                    color: color,
+                    decay: rand(0.95, 0.99),
+                });
+            }
+        }
+
+        function spawnFeatherTrail(x, y) {
+            for (let i = 0; i < 3; i++) {
+                particles.push({
+                    x: x + rand(-5, 5),
+                    y: y + rand(-2, 2),
+                    vx: rand(-0.3, 0.3),
+                    vy: rand(0.5, 1.5),
+                    life: rand(20, 40),
+                    maxLife: 40,
+                    size: rand(2, 4),
+                    color: '#FFD700',
+                    decay: 0.97,
+                    feather: true,
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.02;
+                p.vx *= p.decay || 0.99;
+                p.life--;
+                if (p.life <= 0 || p.y > canvasH + 20) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        // ================================================================
+        // 9. BACKGROUND (unchanged)
+        // ================================================================
+        function initBackground() {
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: rand(0, canvasW),
+                    y: rand(0, canvasH * 1.5),
+                    size: rand(0.5, 2.5),
+                    twinkleSpeed: rand(0.01, 0.03),
+                    phase: rand(0, Math.PI*2),
+                });
+            }
+            clouds = [];
+            for (let i = 0; i < 12; i++) {
+                clouds.push({
+                    x: rand(0, canvasW),
+                    y: rand(0, canvasH * 1.2),
+                    w: rand(40, 120),
+                    h: rand(15, 30),
+                    speed: rand(0.2, 0.6),
+                    opacity: rand(0.05, 0.2),
+                });
+            }
+            islands = [];
+            for (let i = 0; i < 6; i++) {
+                islands.push({
+                    x: rand(0, canvasW),
+                    y: rand(0, canvasH * 1.5),
+                    w: rand(60, 150),
+                    h: rand(20, 50),
+                    speed: rand(0.1, 0.3),
+                    opacity: rand(0.1, 0.3),
+                });
+            }
+        }
+        initBackground();
+
+        // ================================================================
+        // 10. OBSTACLES (unchanged)
+        // ================================================================
+        function generateObstacle() {
+            const gapSize = rand(PIPE_GAP_MIN, PIPE_GAP_MAX);
+            const gapY = rand(gapSize * 0.6, canvasH - gapSize * 0.6);
+            const x = canvasW + 20;
+            obstacles.push({
+                x: x,
+                y: 0,
+                gapY: gapY,
+                gapSize: gapSize,
+                passed: false,
+                width: PIPE_WIDTH,
+            });
+            if (Math.random() < 0.4) {
+                const cx = x + rand(20, 50);
+                const cy = gapY + rand(-gapSize*0.4, gapSize*0.4);
+                collectibles.push({
+                    x: cx,
+                    y: cy,
+                    radius: 10,
+                    collected: false,
+                    type: 'star',
+                    floatPhase: rand(0, Math.PI*2),
+                });
+            }
+        }
+
+        // ================================================================
+        // 11. RESET / UI UPDATE
+        // ================================================================
+        function resetGame() {
+            distanceScore = 0;
+            scrollSpeed = SCROLL_SPEED_INIT;
+            distance = 0;
+            angel.y = canvasH * 0.5;
+            angel.vy = 0;
+            angel.rotation = 0;
+            obstacles = [];
+            collectibles = [];
+            particles = [];
+            obstaclesPassed = 0;
+            level = 1;
+            obstaclesRequired = ADMIN_CONFIG.initialLevelRequirement;
+            gameRunning = false;
+            gamePaused = false;
+            tapJustPressed = false;
+            levelPopup.classList.remove('active');
+            updateUI();
+        }
+
+        function updateUI() {
+            scoreEl.textContent = Math.floor(distanceScore);
+            highScoreEl.textContent = 'BEST ' + Math.floor(highScore);
+            coinCountEl.textContent = formatFlashcoins();
+            diamondCountEl.textContent = diamonds;
+            startHighScoreEl.textContent = Math.floor(highScore);
+            startFlashcoinsEl.textContent = formatFlashcoins();
+            startDiamondsEl.textContent = diamonds;
+            if (shopCoinsEl) shopCoinsEl.textContent = formatFlashcoins();
+            if (walletBalance) walletBalance.textContent = diamonds;
+
+            localStorage.setItem('angelEscapeFlashcoins', flashcoins);
+            localStorage.setItem('angelEscapeDiamonds', diamonds);
+            localStorage.setItem('angelEscapeHighScore', highScore);
+
+            if (useFirebase && currentUser) {
+                const userRef = database.ref('users/' + currentUser.uid);
+                userRef.update({
+                    highScore: highScore,
+                    flashcoins: flashcoins,
+                    diamonds: diamonds,
+                    lastUpdated: Date.now()
+                }).catch(err => console.warn('Firebase update error:', err));
+            }
+        }
+
+        // ================================================================
+        // 12. COLLISION (unchanged)
+        // ================================================================
+        function circleRectCollision(cx, cy, cr, rx, ry, rw, rh) {
+            const nearX = clamp(cx, rx, rx + rw);
+            const nearY = clamp(cy, ry, ry + rh);
+            const dx = cx - nearX;
+            const dy = cy - nearY;
+            return (dx*dx + dy*dy) < (cr*cr);
+        }
+
+        function checkCollisions() {
+            const ax = angel.x, ay = angel.y, r = angel.radius * 0.9;
+            for (let obs of obstacles) {
+                const topH = obs.gapY - obs.gapSize/2;
+                if (circleRectCollision(ax, ay, r, obs.x, 0, obs.width, topH)) return true;
+                const bottomY = obs.gapY + obs.gapSize/2;
+                if (circleRectCollision(ax, ay, r, obs.x, bottomY, obs.width, canvasH - bottomY)) return true;
+                if (!obs.passed && obs.x + obs.width < ax) {
+                    obs.passed = true;
+                    addFlashcoins(ADMIN_CONFIG.flashcoinsPerObstacle);
+                    obstaclesPassed++;
+                    spawnParticles(ax, ay, '#FFD700', 10, 2);
+                    updateUI();
+                    if (obstaclesPassed >= obstaclesRequired) {
+                        completeLevel();
+                    }
+                }
+            }
+            for (let col of collectibles) {
+                if (col.collected) continue;
+                const dx = ax - col.x;
+                const dy = ay - col.y;
+                if (dx*dx + dy*dy < (r + col.radius)*(r + col.radius)) {
+                    col.collected = true;
+                    addFlashcoins(0.5);
+                    spawnParticles(col.x, col.y, '#FFD700', 20, 4);
+                    updateUI();
+                }
+            }
+            if (ay - r < 0 || ay + r > canvasH) return true;
+            return false;
+        }
+
+        // ================================================================
+        // 13. LEVEL COMPLETION
+        // ================================================================
+        function completeLevel() {
+            gameRunning = false;
+            const reward = ADMIN_CONFIG.diamondReward;
+            diamondRewardEl.textContent = reward;
+            levelPopup.classList.add('active');
+            pendingClaim = true;
+        }
+
+        function claimReward() {
+            if (adPending) return;
+            if (ADMIN_CONFIG.adEnabled) {
+                showAd(() => {
+                    diamonds += ADMIN_CONFIG.diamondReward;
+                    updateUI();
+                    level++;
+                    obstaclesRequired = ADMIN_CONFIG.initialLevelRequirement + level - 1;
+                    obstaclesPassed = 0;
+                    levelPopup.classList.remove('active');
+                    pendingClaim = false;
+                    gameRunning = true;
+                    gamePaused = false;
+                    updateUI();
+                }, () => {
+                    alert('Ad failed to load. Try again.');
+                });
+            } else {
+                diamonds += ADMIN_CONFIG.diamondReward;
+                updateUI();
+                level++;
+                obstaclesRequired = ADMIN_CONFIG.initialLevelRequirement + level - 1;
+                obstaclesPassed = 0;
+                levelPopup.classList.remove('active');
+                pendingClaim = false;
+                gameRunning = true;
+                gamePaused = false;
+                updateUI();
+            }
+        }
+
+        function skipClaim() {
+            level++;
+            obstaclesRequired = ADMIN_CONFIG.initialLevelRequirement + level - 1;
+            obstaclesPassed = 0;
+            levelPopup.classList.remove('active');
+            pendingClaim = false;
+            gameRunning = true;
+            gamePaused = false;
+            updateUI();
+        }
+
+        // ================================================================
+        // 14. AD PLACEHOLDER
+        // ================================================================
+        function showAd(onSuccess, onFail) {
+            if (adPending) return;
+            adPending = true;
+            adLoading.classList.add('active');
+            console.log('🎥 [Ad] Showing video ad...');
+            setTimeout(() => {
+                adLoading.classList.remove('active');
+                if (Math.random() > 0.1) {
+                    console.log('✅ [Ad] Completed');
+                    adPending = false;
+                    if (onSuccess) onSuccess();
+                } else {
+                    console.log('❌ [Ad] Failed');
+                    adPending = false;
+                    if (onFail) onFail();
+                }
+            }, 1800);
+        }
+
+        // ================================================================
+        // 15. GAME OVER / REVIVE / NEW GAME
+        // ================================================================
+        function gameOver() {
+            gameRunning = false;
+            if (distanceScore > highScore) {
+                highScore = distanceScore;
+                updateUI();
+            }
+            finalScoreEl.textContent = Math.floor(distanceScore);
+            finalHighEl.textContent = Math.floor(highScore);
+            gameOverMenu.classList.add('active');
+            updateUI();
+            spawnParticles(angel.x, angel.y, '#FFD700', 40, 6);
+        }
+
+        function reviveGame() {
+            if (adPending) return;
+            if (!ADMIN_CONFIG.adEnabled) {
+                angel.y = canvasH * 0.5;
+                angel.vy = 0;
+                obstacles = [];
+                collectibles = [];
+                generateObstacle();
+                gameRunning = true;
+                gamePaused = false;
+                gameOverMenu.classList.remove('active');
+                updateUI();
+                return;
+            }
+            showAd(() => {
+                angel.y = canvasH * 0.5;
+                angel.vy = 0;
+                obstacles = [];
+                collectibles = [];
+                generateObstacle();
+                gameRunning = true;
+                gamePaused = false;
+                gameOverMenu.classList.remove('active');
+                updateUI();
+            }, () => {
+                alert('Ad failed to load. Try again.');
+            });
+        }
+
+        function newGame() {
+            if (adPending) return;
+            if (ADMIN_CONFIG.adEnabled) {
+                showAd(() => {
+                    resetGame();
+                    startGame();
+                    gameOverMenu.classList.remove('active');
+                }, () => {
+                    alert('Ad failed to load. Try again.');
+                });
+            } else {
+                resetGame();
+                startGame();
+                gameOverMenu.classList.remove('active');
+            }
+        }
+
+        // ================================================================
+        // 16. START / PAUSE / MENU
+        // ================================================================
+        function startGame() {
+            resetGame();
+            gameRunning = true;
+            gamePaused = false;
+            startMenu.classList.remove('active');
+            gameOverMenu.classList.remove('active');
+            pauseMenu.classList.remove('active');
+            shopMenu.classList.remove('active');
+            achievementsMenu.classList.remove('active');
+            walletMenu.classList.remove('active');
+            levelPopup.classList.remove('active');
+            updateUI();
+        }
+
+        function pauseGame() {
+            if (!gameRunning) return;
+            gamePaused = true;
+            pauseMenu.classList.add('active');
+        }
+
+        function resumeGame() {
+            gamePaused = false;
+            pauseMenu.classList.remove('active');
+        }
+
+        function goToMenu() {
+            gameRunning = false;
+            gamePaused = false;
+            startMenu.classList.add('active');
+            gameOverMenu.classList.remove('active');
+            pauseMenu.classList.remove('active');
+            shopMenu.classList.remove('active');
+            achievementsMenu.classList.remove('active');
+            walletMenu.classList.remove('active');
+            levelPopup.classList.remove('active');
+            resetGame();
+        }
+
+        // ================================================================
+        // 17. TAP
+        // ================================================================
+        function handleTap(e) {
+            e.preventDefault();
+            if (!gameRunning || gamePaused || adPending || pendingClaim) return;
+            angel.vy = FLAP_VELOCITY;
+            tapJustPressed = true;
+            spawnFeatherTrail(angel.x - 8, angel.y);
+            spawnFeatherTrail(angel.x + 8, angel.y);
+        }
+
+        // ================================================================
+        // 18. GAME UPDATE
+        // ================================================================
+        function update() {
+            if (!gameRunning || gamePaused) return;
+
+            frame++;
+            scrollSpeed += SCROLL_SPEED_INCR;
+
+            angel.vy += GRAVITY;
+            angel.y += angel.vy;
+            angel.rotation = clamp(angel.vy * 0.05, -0.4, 0.6);
+            if (tapJustPressed) {
+                angel.wingPhase = 0;
+            } else {
+                angel.wingPhase += 0.15;
+            }
+            angel.wingAngle = Math.sin(angel.wingPhase) * 0.6 + 0.4;
+            tapJustPressed = false;
+
+            if (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvasW - PIPE_SPACING) {
+                generateObstacle();
+            }
+
+            for (let obs of obstacles) obs.x -= scrollSpeed;
+            for (let col of collectibles) {
+                col.x -= scrollSpeed;
+                col.floatPhase += 0.03;
+                col.y += Math.sin(col.floatPhase) * 0.2;
+            }
+            obstacles = obstacles.filter(obs => obs.x + obs.width > -20);
+            collectibles = collectibles.filter(col => col.x > -30 && !col.collected);
+
+            if (checkCollisions()) {
+                gameOver();
+                return;
+            }
+
+            for (let star of stars) {
+                star.y += scrollSpeed * 0.1;
+                if (star.y > canvasH + 10) { star.y = -10; star.x = rand(0, canvasW); }
+            }
+            for (let cloud of clouds) {
+                cloud.x -= scrollSpeed * cloud.speed * 0.3;
+                if (cloud.x + cloud.w < -20) { cloud.x = canvasW + 20; cloud.y = rand(0, canvasH); }
+            }
+            for (let island of islands) {
+                island.y += scrollSpeed * island.speed * 0.2;
+                if (island.y > canvasH + 20) { island.y = -30; island.x = rand(0, canvasW); }
+            }
+
+            updateParticles();
+            distance += scrollSpeed;
+            distanceScore = Math.floor(distance / 30);
+            updateUI();
+        }
+
+        // ================================================================
+        // 19. DRAW (unchanged)
+        // ================================================================
+        function drawPillar(x, y, w, h, fillColor, edgeColor) {
+            if (h <= 0) return;
+            ctx.save();
+            ctx.shadowColor = 'rgba(255,215,0,0.2)';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(x, y, w, h);
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = edgeColor;
+            ctx.strokeStyle = edgeColor;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, w, h);
+            ctx.strokeStyle = 'rgba(255,215,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x+6, y+6, w-12, h-12);
+            ctx.fillStyle = 'rgba(255,215,0,0.1)';
+            for (let i = 0; i < h; i+= 30) {
+                ctx.fillRect(x+10, y+i, w-20, 2);
+            }
+            ctx.restore();
+        }
+
+        function drawAngel(x, y, rotation, wingAngle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+
+            const pulse = 0.8 + 0.2 * Math.sin(frame * 0.06);
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 45 * pulse;
+
+            ctx.save();
+            ctx.rotate(-0.3 + wingAngle * 0.2);
+            ctx.fillStyle = '#FFC107';
+            ctx.shadowBlur = 30 * pulse;
+            ctx.beginPath();
+            ctx.ellipse(-22, -8, 20, 10, -0.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-32, -2, 16, 8, -0.2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-28, 6, 14, 7, 0.3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.rotate(0.3 - wingAngle * 0.2);
+            ctx.fillStyle = '#FFC107';
+            ctx.shadowBlur = 30 * pulse;
+            ctx.beginPath();
+            ctx.ellipse(22, -8, 20, 10, 0.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(32, -2, 16, 8, 0.2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(28, 6, 14, 7, -0.3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 35 * pulse;
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, 0, Math.PI*2);
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+
+            ctx.shadowBlur = 50 * pulse;
+            ctx.shadowColor = '#FFAA00';
+            ctx.strokeStyle = '#FFAA00';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, -22, 16, 0, Math.PI*2);
+            ctx.stroke();
+
+            const blink = (frame % 100 < 4);
+            ctx.shadowBlur = 0;
+            if (!blink) {
+                ctx.fillStyle = '#1C1545';
+                ctx.beginPath();
+                ctx.arc(-5, -3, 2.5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(5, -3, 2.5, 0, Math.PI*2);
+                ctx.fill();
+            } else {
+                ctx.strokeStyle = '#1C1545';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-7, -3);
+                ctx.lineTo(-3, -3);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(3, -3);
+                ctx.lineTo(7, -3);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#1C1545';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 2, 5, 0.1, Math.PI - 0.1);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvasW, canvasH);
+
+            const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
+            grad.addColorStop(0, '#0A1028');
+            grad.addColorStop(0.5, '#1C1545');
+            grad.addColorStop(1, '#0A1028');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            for (let star of stars) {
+                const alpha = 0.5 + 0.5 * Math.sin(frame * star.twinkleSpeed + star.phase);
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            for (let island of islands) {
+                ctx.globalAlpha = island.opacity * 0.5;
+                ctx.fillStyle = '#2A1F5A';
+                ctx.beginPath();
+                ctx.ellipse(island.x, island.y, island.w/2, island.h/2, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.shadowColor = '#6A4F9A';
+                ctx.shadowBlur = 30;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            ctx.globalAlpha = 1;
+
+            for (let cloud of clouds) {
+                ctx.globalAlpha = cloud.opacity * 0.6;
+                ctx.fillStyle = '#6A5A8A';
+                ctx.beginPath();
+                ctx.ellipse(cloud.x, cloud.y, cloud.w/2, cloud.h/2, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(cloud.x - cloud.w*0.2, cloud.y - cloud.h*0.2, cloud.w*0.3, cloud.h*0.5, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(cloud.x + cloud.w*0.2, cloud.y - cloud.h*0.1, cloud.w*0.3, cloud.h*0.4, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            for (let obs of obstacles) {
+                const x = obs.x;
+                const gapY = obs.gapY;
+                const gapSize = obs.gapSize;
+                const w = obs.width;
+                drawPillar(x, 0, w, gapY - gapSize/2, '#4A3A6A', '#FFD54F');
+                drawPillar(x, gapY + gapSize/2, w, canvasH - (gapY + gapSize/2), '#4A3A6A', '#FFD54F');
+            }
+
+            for (let col of collectibles) {
+                if (col.collected) continue;
+                const glow = 0.6 + 0.4 * Math.sin(frame * 0.05 + col.floatPhase);
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 25 * glow;
+                ctx.beginPath();
+                ctx.arc(col.x, col.y, col.radius, 0, Math.PI*2);
+                ctx.fillStyle = '#FFD700';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('⭐', col.x, col.y+1);
+            }
+
+            drawAngel(angel.x, angel.y, angel.rotation, angel.wingAngle);
+
+            for (let p of particles) {
+                const alpha = p.life / p.maxLife;
+                ctx.globalAlpha = alpha;
+                if (p.feather) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.shadowColor = '#FFD700';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.ellipse(p.x, p.y, p.size*1.5, p.size*0.6, p.vx*0.5, 0, Math.PI*2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = p.color || '#FFD700';
+                    ctx.shadowColor = p.color || '#FFD700';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            }
+            ctx.globalAlpha = 1;
+
+            const fogGrad = ctx.createRadialGradient(canvasW/2, canvasH*0.3, 50, canvasW/2, canvasH*0.5, canvasH*0.8);
+            fogGrad.addColorStop(0, 'rgba(255,215,0,0.02)');
+            fogGrad.addColorStop(0.5, 'rgba(100,80,180,0.04)');
+            fogGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fogGrad;
+            ctx.fillRect(0, 0, canvasW, canvasH);
+        }
+
+        // ================================================================
+        // 20. GAME LOOP
+        // ================================================================
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ================================================================
+        // 21. AUTHENTICATION (with config fetch)
+        // ================================================================
+        let isLoginMode = true;
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            authLoginBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
+            authSignupBtn.textContent = isLoginMode ? 'Sign Up' : 'Login';
+            authToggle.textContent = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Login";
+            authError.textContent = '';
+        }
+
+        function handleAuth() {
+            const email = authEmail.value.trim();
+            const password = authPassword.value.trim();
+            if (!email || !password) {
+                authError.textContent = 'Please fill in all fields.';
+                return;
+            }
+            authError.textContent = '';
+            if (isLoginMode) {
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(userCredential => {
+                        authScreen.classList.add('hidden');
+                        currentUser = userCredential.user;
+                        loadUserData(currentUser.uid);
+                    })
+                    .catch(err => {
+                        authError.textContent = err.message;
+                    });
+            } else {
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then(userCredential => {
+                        authScreen.classList.add('hidden');
+                        currentUser = userCredential.user;
+                        const userRef = database.ref('users/' + currentUser.uid);
+                        userRef.set({
+                            highScore: 0,
+                            flashcoins: 0,
+                            diamonds: 0,
+                            profile: {
+                                bio: '',
+                                bank: { holder: '', number: '', bank: '' }
+                            },
+                            created: Date.now()
+                        }).then(() => {
+                            loadUserData(currentUser.uid);
+                        });
+                    })
+                    .catch(err => {
+                        authError.textContent = err.message;
+                    });
+            }
+        }
+
+        // ----- Fetch game config from Firebase -----
+        function fetchConfig() {
+            if (!useFirebase) return Promise.resolve();
+            return database.ref('config').once('value').then(snapshot => {
+                const config = snapshot.val();
+                if (config) {
+                    ADMIN_CONFIG.diamondReward = config.diamondReward || 5;
+                    ADMIN_CONFIG.flashcoinsPerObstacle = config.flashcoinsPerObstacle || 0.2;
+                    ADMIN_CONFIG.initialLevelRequirement = config.initialLevelRequirement || 12;
+                    ADMIN_CONFIG.adEnabled = config.adEnabled !== undefined ? config.adEnabled : true;
+                    console.log('✅ Config loaded from Firebase:', ADMIN_CONFIG);
+                } else {
+                    // Write default config if not exists
+                    database.ref('config').set(ADMIN_CONFIG);
+                    console.log('📝 Default config written to Firebase.');
+                }
+                // Update obstaclesRequired if game not started
+                obstaclesRequired = ADMIN_CONFIG.initialLevelRequirement;
+                return ADMIN_CONFIG;
+            }).catch(err => {
+                console.warn('Could not fetch config, using defaults.', err);
+                return ADMIN_CONFIG;
+            });
+        }
+
+        function loadUserData(uid) {
+            if (!useFirebase) return;
+            // First fetch config
+            fetchConfig().then(() => {
+                const userRef = database.ref('users/' + uid);
+                userRef.once('value').then(snapshot => {
+                    const data = snapshot.val();
+                    if (data) {
+                        highScore = data.highScore || 0;
+                        flashcoins = data.flashcoins || 0;
+                        diamonds = data.diamonds || 0;
+                        if (data.profile) {
+                            profileBio.value = data.profile.bio || '';
+                            bankHolder.value = (data.profile.bank && data.profile.bank.holder) || '';
+                            bankNumber.value = (data.profile.bank && data.profile.bank.number) || '';
+                            bankName.value = (data.profile.bank && data.profile.bank.name) || '';
+                        }
+                    }
+                    profileEmail.value = currentUser.email || '';
+                    updateUI();
+                    // Show start menu
+                    startMenu.classList.add('active');
+                    resetGame();
+                }).catch(err => {
+                    console.warn('Could not load user data:', err);
+                    loadLocalData();
+                    startMenu.classList.add('active');
+                    resetGame();
+                });
+            });
+        }
+
+        function loadLocalData() {
+            const savedHigh = localStorage.getItem('angelEscapeHighScore');
+            if (savedHigh) highScore = parseInt(savedHigh, 10) || 0;
+            const savedFlash = localStorage.getItem('angelEscapeFlashcoins');
+            if (savedFlash) flashcoins = parseInt(savedFlash, 10) || 0;
+            const savedDiamonds = localStorage.getItem('angelEscapeDiamonds');
+            if (savedDiamonds) diamonds = parseInt(savedDiamonds, 10) || 0;
+            updateUI();
+        }
+
+        function logout() {
+            if (useFirebase && auth) {
+                auth.signOut().then(() => {
+                    currentUser = null;
+                    authScreen.classList.remove('hidden');
+                    startMenu.classList.remove('active');
+                    gameOverMenu.classList.remove('active');
+                    pauseMenu.classList.remove('active');
+                    shopMenu.classList.remove('active');
+                    achievementsMenu.classList.remove('active');
+                    walletMenu.classList.remove('active');
+                    levelPopup.classList.remove('active');
+                    resetGame();
+                });
+            } else {
+                currentUser = null;
+                authScreen.classList.remove('hidden');
+                startMenu.classList.remove('active');
+                resetGame();
+            }
+        }
+
+        // ================================================================
+        // 22. WALLET & PROFILE FUNCTIONS (unchanged from previous)
+        // ================================================================
+        function saveProfile() {
+            if (!currentUser || !useFirebase) {
+                profileMsg.textContent = 'Not logged in.';
+                profileMsg.className = 'transaction-msg error';
+                return;
+            }
+            const bio = profileBio.value.trim();
+            const holder = bankHolder.value.trim();
+            const number = bankNumber.value.trim();
+            const bank = bankName.value.trim();
+            const userRef = database.ref('users/' + currentUser.uid + '/profile');
+            userRef.update({
+                bio: bio,
+                bank: { holder, number, bank }
+            }).then(() => {
+                profileMsg.textContent = '✅ Profile saved!';
+                profileMsg.className = 'transaction-msg';
+            }).catch(err => {
+                profileMsg.textContent = 'Error: ' + err.message;
+                profileMsg.className = 'transaction-msg error';
+            });
+        }
+
+        function withdraw() {
+            if (!currentUser || !useFirebase) {
+                withdrawMsg.textContent = 'Not logged in.';
+                withdrawMsg.className = 'transaction-msg error';
+                return;
+            }
+            const amount = parseInt(withdrawAmount.value);
+            if (isNaN(amount) || amount < 1) {
+                withdrawMsg.textContent = 'Enter a valid amount.';
+                withdrawMsg.className = 'transaction-msg error';
+                return;
+            }
+            if (amount > diamonds) {
+                withdrawMsg.textContent = 'Insufficient balance.';
+                withdrawMsg.className = 'transaction-msg error';
+                return;
+            }
+            const userRef = database.ref('users/' + currentUser.uid);
+            userRef.child('profile/bank').once('value').then(snap => {
+                const bankData = snap.val();
+                if (!bankData || !bankData.holder || !bankData.number || !bankData.bank) {
+                    withdrawMsg.textContent = 'Please set your bank details in Profile first.';
+                    withdrawMsg.className = 'transaction-msg error';
+                    return;
+                }
+                const newDiamonds = diamonds - amount;
+                userRef.child('diamonds').transaction(current => {
+                    return (current || 0) - amount;
+                }).then(result => {
+                    if (result.committed) {
+                        diamonds = result.snapshot.val();
+                        const withdrawRef = database.ref('withdrawals').push();
+                        withdrawRef.set({
+                            uid: currentUser.uid,
+                            email: currentUser.email,
+                            amount: amount,
+                            bank: bankData,
+                            status: 'pending',
+                            timestamp: Date.now()
+                        }).then(() => {
+                            withdrawMsg.textContent = '✅ Withdrawal request submitted!';
+                            withdrawMsg.className = 'transaction-msg';
+                            withdrawAmount.value = '';
+                            updateUI();
+                        }).catch(err => {
+                            withdrawMsg.textContent = 'Error: ' + err.message;
+                            withdrawMsg.className = 'transaction-msg error';
+                        });
+                    } else {
+                        withdrawMsg.textContent = 'Transaction failed, try again.';
+                        withdrawMsg.className = 'transaction-msg error';
+                    }
+                }).catch(err => {
+                    withdrawMsg.textContent = 'Error: ' + err.message;
+                    withdrawMsg.className = 'transaction-msg error';
+                });
+            }).catch(err => {
+                withdrawMsg.textContent = 'Error loading bank details.';
+                withdrawMsg.className = 'transaction-msg error';
+            });
+        }
+
+        function transfer() {
+            if (!currentUser || !useFirebase) {
+                transferMsg.textContent = 'Not logged in.';
+                transferMsg.className = 'transaction-msg error';
+                return;
+            }
+            const recipientEmail = transferEmail.value.trim().toLowerCase();
+            const amount = parseInt(transferAmount.value);
+            const note = transferNote.value.trim() || 'Transfer from game';
+            if (!recipientEmail || !recipientEmail.includes('@')) {
+                transferMsg.textContent = 'Enter a valid recipient email.';
+                transferMsg.className = 'transaction-msg error';
+                return;
+            }
+            if (isNaN(amount) || amount < 1) {
+                transferMsg.textContent = 'Enter a valid amount.';
+                transferMsg.className = 'transaction-msg error';
+                return;
+            }
+            if (amount > diamonds) {
+                transferMsg.textContent = 'Insufficient balance.';
+                transferMsg.className = 'transaction-msg error';
+                return;
+            }
+            if (recipientEmail === currentUser.email) {
+                transferMsg.textContent = 'Cannot send to yourself.';
+                transferMsg.className = 'transaction-msg error';
+                return;
+            }
+            const usersRef = database.ref('users');
+            usersRef.orderByChild('email').equalTo(recipientEmail).once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    transferMsg.textContent = 'Recipient not found.';
+                    transferMsg.className = 'transaction-msg error';
+                    return;
+                }
+                let recipientUid = null;
+                snapshot.forEach(child => {
+                    recipientUid = child.key;
+                });
+                if (!recipientUid) {
+                    transferMsg.textContent = 'Recipient not found.';
+                    transferMsg.className = 'transaction-msg error';
+                    return;
+                }
+                const senderRef = database.ref('users/' + currentUser.uid);
+                const recipientRef = database.ref('users/' + recipientUid);
+                senderRef.child('diamonds').transaction(current => {
+                    return (current || 0) - amount;
+                }).then(result => {
+                    if (result.committed) {
+                        diamonds = result.snapshot.val();
+                        recipientRef.child('diamonds').transaction(current => {
+                            return (current || 0) + amount;
+                        }).then(res => {
+                            if (res.committed) {
+                                const transRef = database.ref('transactions').push();
+                                transRef.set({
+                                    from: currentUser.uid,
+                                    fromEmail: currentUser.email,
+                                    to: recipientUid,
+                                    toEmail: recipientEmail,
+                                    amount: amount,
+                                    note: note,
+                                    timestamp: Date.now()
+                                }).then(() => {
+                                    transferMsg.textContent = '✅ Transfer successful!';
+                                    transferMsg.className = 'transaction-msg';
+                                    transferEmail.value = '';
+                                    transferAmount.value = '';
+                                    transferNote.value = '';
+                                    updateUI();
+                                }).catch(err => {
+                                    transferMsg.textContent = 'Error logging transaction.';
+                                    transferMsg.className = 'transaction-msg error';
+                                });
+                            } else {
+                                senderRef.child('diamonds').transaction(current => {
+                                    return (current || 0) + amount;
+                                });
+                                transferMsg.textContent = 'Transfer failed, balance restored.';
+                                transferMsg.className = 'transaction-msg error';
+                            }
+                        }).catch(err => {
+                            senderRef.child('diamonds').transaction(current => {
+                                return (current || 0) + amount;
+                            });
+                            transferMsg.textContent = 'Error: ' + err.message;
+                            transferMsg.className = 'transaction-msg error';
+                        });
+                    } else {
+                        transferMsg.textContent = 'Transfer failed, try again.';
+                        transferMsg.className = 'transaction-msg error';
+                    }
+                }).catch(err => {
+                    transferMsg.textContent = 'Error: ' + err.message;
+                    transferMsg.className = 'transaction-msg error';
+                });
+            }).catch(err => {
+                transferMsg.textContent = 'Error finding recipient.';
+                transferMsg.className = 'transaction-msg error';
+            });
+        }
+
+        function deleteAccount() {
+            if (!currentUser || !useFirebase) {
+                deleteMsg.textContent = 'Not logged in.';
+                deleteMsg.className = 'transaction-msg error';
+                return;
+            }
+            if (!confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+            const uid = currentUser.uid;
+            database.ref('users/' + uid).remove().then(() => {
+                currentUser.delete().then(() => {
+                    deleteMsg.textContent = 'Account deleted.';
+                    deleteMsg.className = 'transaction-msg';
+                    auth.signOut();
+                    currentUser = null;
+                    authScreen.classList.remove('hidden');
+                    startMenu.classList.remove('active');
+                    walletMenu.classList.remove('active');
+                    resetGame();
+                }).catch(err => {
+                    deleteMsg.textContent = 'Error deleting auth: ' + err.message;
+                    deleteMsg.className = 'transaction-msg error';
+                });
+            }).catch(err => {
+                deleteMsg.textContent = 'Error deleting data: ' + err.message;
+                deleteMsg.className = 'transaction-msg error';
+            });
+        }
+
+        // ================================================================
+        // 23. WALLET UI TABS (unchanged)
+        // ================================================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const tab = this.dataset.tab;
+                document.querySelectorAll('.wallet-tab-content').forEach(el => el.style.display = 'none');
+                const target = document.getElementById('tab-' + tab);
+                if (target) target.style.display = 'block';
+            });
+        });
+
+        // ================================================================
+        // 24. EVENT LISTENERS (same as before)
+        // ================================================================
+        canvas.addEventListener('touchstart', handleTap, { passive: false });
+        canvas.addEventListener('mousedown', handleTap);
+
+        startBtn.addEventListener('click', startGame);
+        retryBtn.addEventListener('click', newGame);
+        reviveBtn.addEventListener('click', reviveGame);
+        menuBtn.addEventListener('click', goToMenu);
+        pauseBtn.addEventListener('click', pauseGame);
+        resumeBtn.addEventListener('click', resumeGame);
+        pauseMenuBtn.addEventListener('click', goToMenu);
+        logoutBtn.addEventListener('click', logout);
+
+        claimBtn.addEventListener('click', claimReward);
+        skipClaimBtn.addEventListener('click', skipClaim);
+
+        authLoginBtn.addEventListener('click', handleAuth);
+        authSignupBtn.addEventListener('click', handleAuth);
+        authToggle.addEventListener('click', toggleAuthMode);
+        authEmail.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuth(); });
+        authPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuth(); });
+
+        walletBtn.addEventListener('click', function() {
+            startMenu.classList.remove('active');
+            walletMenu.classList.add('active');
+            walletBalance.textContent = diamonds;
+            if (currentUser) {
+                profileEmail.value = currentUser.email;
+            }
+        });
+        walletClose.addEventListener('click', function() {
+            walletMenu.classList.remove('active');
+            startMenu.classList.add('active');
+        });
+        walletBack.addEventListener('click', function() {
+            walletMenu.classList.remove('active');
+            startMenu.classList.add('active');
+        });
+
+        saveProfileBtn.addEventListener('click', saveProfile);
+        withdrawBtn.addEventListener('click', withdraw);
+        transferBtn.addEventListener('click', transfer);
+        deleteAccountBtn.addEventListener('click', deleteAccount);
+
+        shopBtn.addEventListener('click', function() {
+            startMenu.classList.remove('active');
+            shopMenu.classList.add('active');
+            shopCoinsEl.textContent = formatFlashcoins();
+        });
+        shopBack.addEventListener('click', function() {
+            shopMenu.classList.remove('active');
+            startMenu.classList.add('active');
+        });
+        shopClose.addEventListener('click', function() {
+            shopMenu.classList.remove('active');
+            startMenu.classList.add('active');
+        });
+
+        achievementsBtn.addEventListener('click', function() {
+            startMenu.classList.remove('active');
+            achievementsMenu.classList.add('active');
+            document.getElementById('ach1').textContent = (distance > 1000) ? '✅ Unlocked' : '🔒 Locked';
+            document.getElementById('ach2').textContent = (getFlashcoins() > 50) ? '✅ Unlocked' : '🔒 Locked';
+            document.getElementById('ach3').textContent = (level > 5) ? '✅ Unlocked' : '🔒 Locked';
+        });
+        achieveBack.addEventListener('click', function() {
+            achievementsMenu.classList.remove('active');
+            startMenu.classList.add('active');
+        });
+        achieveClose.addEventListener('click', function() {
+            achievementsMenu.classList.remove('active');
+            startMenu.classList.add('active');
+        });
+
+        buyBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const price = parseFloat(this.dataset.price);
+                if (getFlashcoins() >= price) {
+                    setFlashcoins(getFlashcoins() - price);
+                    alert('Purchased ' + this.dataset.item + '! (cosmetic)');
+                    updateUI();
+                    shopCoinsEl.textContent = formatFlashcoins();
+                } else {
+                    alert('Not enough Flashcoins!');
+                }
+            });
+        });
+
+        // ================================================================
+        // 25. INIT
+        // ================================================================
+        if (useFirebase) {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    authScreen.classList.add('hidden');
+                    loadUserData(user.uid);
+                } else {
+                    authScreen.classList.remove('hidden');
+                    startMenu.classList.remove('active');
+                }
+            });
+        } else {
+            authScreen.classList.add('hidden');
+            loadLocalData();
+            startMenu.classList.add('active');
+            resetGame();
+        }
+
+        resetGame();
+        gameLoop();
+
+        console.log('✨ Angel Escape: Heaven Flight – Admin config ready');
+    })();
+</script>
+</body>
+</html>
